@@ -1,2 +1,4 @@
 dump/*
 temp/*
+.DS_Store
+*.pyc
