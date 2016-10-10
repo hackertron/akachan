@@ -1,5 +1,5 @@
-dump/*
-temp/*
+permutations/*
+animations/*
 .DS_Store
 *.pyc
 *.gif
