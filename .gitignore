@@ -1,5 +1,5 @@
-permutations/*
-animations/*
+app/permutations/*
+app/animations/*
 .DS_Store
 *.pyc
 *.gif
