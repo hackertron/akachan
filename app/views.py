@@ -1,64 +1,117 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import flask, flask.views
-from flask import request, send_file
-from app import app
+import json, requests, random, re
+from pprint import pprint
 
-import os
-from bresenham import bresenham
+from django.shortcuts import render
+from django.http import HttpResponse
 
-DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-SERVER_URL = 'http://chestream.cloudapp.net:8080/akachan'
+from django.views import generic
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+# Create your views here.
+from random import randint
 
-
-@app.route('/')
-def home():
-    print 'San Francisco'
-    x1 = request.args.get('x1')
-    x2 = request.args.get('x2')
-    y1 = request.args.get('y1')
-    y2 = request.args.get('y2')
-    print x1,x2,y1,y2
-    x1,x2,y1,y2 = map(int , [x1,x2,y1,y2])  
-    image_url = make_gif(x1,y1,x2,y2)
-    return send_file(image_url, mimetype='image/gif')
-
-def main():
-    if os.path.exists("%s/permutations"%(DIR_PATH)):
-        return
-    
-    os.system('mkdir %s/permutations'%(DIR_PATH))
-    for i in range(0,100):
-        for j in range(0,100):
-            perm_name = "%03dx%03d.png"%(i,j)
-            print perm_name
-            os.system("composite -compose atop -geometry +%s+%s -gravity NorthWest \
-                %s/media/emoji.ico %s/media/canvas.png %s/permutations/%s"%(i,j,DIR_PATH,DIR_PATH,DIR_PATH,perm_name))
+import re # added for regular expression
 
 
-def make_gif(x1,y1,x2,y2):
-    #print "Calling make gif"
-    #assert (x1 >= 0 and y1 >=0 and x2 >= 0 and y2 >=0 and x1 < 100 and x2 < 100 and y1 < 100 and y2 < 100 ),"Coordinates must be between [0,0]&[99,99]"
-    #return "%s/animations"%(DIR_PATH)
-    if not os.path.exists("%s/animations"%(DIR_PATH)):
-        os.system('mkdir %s/animations'%(DIR_PATH))
-    print 'SF'
-    if os.path.exists("%s/permutations/%03dx%03d-%03dx%03d.gif"%(DIR_PATH,x1,y1,x2,y2)):
-        return "%s/%03dx%03d-%03dx%03d.gif"%(SERVER_URL,x1,y1,x2,y2)
-
-    l = bresenham([x1,y1],[x2,y2])
-    image_string = ''
-    for i in l.path:
-        image_string = image_string + ' %s/permutations/%03dx%03d.png'%(DIR_PATH,i[0],i[1])
-    
-    cmd = 'convert -delay 10 %s -loop 0 %s/animations/%03dx%03d-%03dx%03d.gif'%(image_string,DIR_PATH,x1,y1,x2,y2)
-    #print(cmd)
-    os.system(cmd)
-    #print("Reaching the end")
-    return "%s/animations/%03dx%03d-%03dx%03d.gif"%(DIR_PATH,x1,y1,x2,y2)
-    
 
 
-if __name__ == '__main__':
-    #main()
-    app.run(debug=True,host='0.0.0.0')
+PAGE_ACCESS_TOKEN = 'EAANaQeDieLUBAItYpMXGElEWDQGtZBiGVmVVqqO4lNky1Lh3hxD0gLImrv5VZCHmKMFt9FgsE3nX8VqAjjbe4qtm4dZBlI6HPERZA6in4NSZCg4rq7guhR3ZBeZC6yw5Rd9GaE6tWxnZBRsvMhmeSVRNNlFP8LDpTj4ZCZCOSCjl0sLgZDZD'
+VERIFY_TOKEN = '8447789934m'
+
+def logg(mess,meta='log',symbol='#'):
+  print '%s\n%s\n%s'%(symbol*20,mess,symbol*20)
+
+def index(request):
+    #set_greeting_text()
+    post_facebook_message('100006427286608','mango')
+    output_response = 'Hi'
+    return HttpResponse(output_response,content_type='application/json')
+
+
+def set_greeting_text():
+    post_message_url = "https://graph.facebook.com/v2.6/me/thread_settings?access_token=%s"%PAGE_ACCESS_TOKEN
+    greeting_text = "Hello and welcome to HelloMeets Bot"
+    greeting_object = json.dumps({"setting_type":"greeting", "greeting":{"text":greeting_text}})
+    status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=greeting_object)
+    pprint(status.json())
+
+def get_coordinates(message):
+	#x1 = randint(0,99)
+    #x2 = randint(0,99)
+    #y1 = randint(0,99)
+    #y2 = randint(0,99)
+
+    x1 = re.search( r'x1:([0-9]{1,3})', coordinates, re.M|re.I|re.U)
+	x1 = x1.group(1)
+	
+
+	y1 = re.search( r'y1:([0-9]{1,3})', coordinates, re.M|re.I|re.U)
+	y1 = y1.group(1)
+
+
+	x2 = re.search( r'x2:([0-9]{1,3})', coordinates, re.M|re.I|re.U)
+	x2 = x2.group(1)
+
+
+	y2 = re.search( r'y2:([0-9]{1,3})', coordinates, re.M|re.I|re.U)
+	y2 = y2.group(1)
+    return x1,y1,x2,y2
+
+def post_facebook_message(fbid, recevied_message):
+    post_message_url = 'https://graph.facebook.com/v2.6/me/messages?access_token=%s'%PAGE_ACCESS_TOKEN
+    recevied_message = re.sub(r"[^a-zA-Z0-9\s]",' ',recevied_message).lower()
+
+    x1,y1,x2,y2 = get_coordinates(recevied_message)
+
+    response_msg  = {
+                      "recipient":{
+                        "id":fbid
+                      },
+                      "message":{
+                        "attachment":{
+                          "type":"image",
+                          "payload":{
+                            "url":"http://chestream.cloudapp.net:5000/?x1=%s&y1=%s&x2=%s&y2=%s"%(x1,y1,x2,y2)
+                          }
+                        }
+                      }
+                    }
+
+    response_msg = json.dumps(response_msg)
+    #response_msg = json.dumps({"recipient":{"id":fbid}, "message":{"text":response_text}})
+    status = requests.post(post_message_url, headers={"Content-Type": "application/json"},data=response_msg)
+
+class BotView(generic.View):
+    def get(self, request, *args, **kwargs):
+        if self.request.GET['hub.verify_token'] == VERIFY_TOKEN:
+            return HttpResponse(self.request.GET['hub.challenge'])
+        else:
+            return HttpResponse('Error, invalid token')
+        
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, *args, **kwargs):
+        return generic.View.dispatch(self, request, *args, **kwargs)
+
+    # Post function to handle Facebook messages
+    def post(self, request, *args, **kwargs):
+        incoming_message= json.loads(self.request.body.decode('utf-8'))
+        
+        logg(incoming_message)
+
+        for entry in incoming_message['entry']:
+            for message in entry['messaging']:
+
+                try:
+                    sender_id = message['sender']['id']
+                    message_text = message['message']['text']
+                    post_facebook_message(sender_id,message_text) 
+                except Exception as e:
+                    logg(e,symbol='-332-')
+
+        return HttpResponse()
+
+
+
